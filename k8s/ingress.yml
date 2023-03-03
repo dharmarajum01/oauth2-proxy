@@ -1,0 +1,151 @@
+# Source: kubernetes/charts/httpbin/templates/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: oauth2-proxy-example-httpbin
+  labels:
+    helm.sh/chart: httpbin-1.0.1
+    app.kubernetes.io/name: httpbin
+    app.kubernetes.io/instance: oauth2-proxy-example
+    app.kubernetes.io/version: "latest"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    #nginx.ingress.kubernetes.io/auth-response-headers: X-Auth-Request-User,X-Auth-Request-Email,Authorization
+    nginx.ingress.kubernetes.io/auth-response-headers: Authorization
+    nginx.ingress.kubernetes.io/auth-signin: "https://httpbin.localtest.me/oauth2/start?rd=https%3A%2F%2Fhttpbin.localtest.me"
+    nginx.ingress.kubernetes.io/auth-url: "https://httpbin.localtest.me/oauth2/auth"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "2048k"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
+
+spec:
+  rules:
+    - host: httpbin.localtest.me
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: oauth2-proxy-example-httpbin
+                port:
+                  number: 80
+
+  tls:
+    - hosts:
+        - httpbin.localtest.me
+      secretName: my-tls-secret
+---
+# Source: kubernetes/charts/httpbin/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: oauth2-proxy-example-httpbin
+  labels:
+    helm.sh/chart: httpbin-1.0.1
+    app.kubernetes.io/name: httpbin
+    app.kubernetes.io/instance: oauth2-proxy-example
+    app.kubernetes.io/version: "latest"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: httpbin
+    app.kubernetes.io/instance: oauth2-proxy-example
+---
+# Source: kubernetes/charts/httpbin/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: oauth2-proxy-example-httpbin
+  labels:
+    helm.sh/chart: httpbin-1.0.1
+    app.kubernetes.io/name: httpbin
+    app.kubernetes.io/instance: oauth2-proxy-example
+    app.kubernetes.io/version: "latest"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: kubernetes/charts/httpbin/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oauth2-proxy-example-httpbin
+  labels:
+    helm.sh/chart: httpbin-1.0.1
+    app.kubernetes.io/name: httpbin
+    app.kubernetes.io/instance: oauth2-proxy-example
+    app.kubernetes.io/version: "latest"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: httpbin
+      app.kubernetes.io/instance: oauth2-proxy-example
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: httpbin
+        app.kubernetes.io/instance: oauth2-proxy-example
+    spec:
+      serviceAccountName: oauth2-proxy-example-httpbin
+      securityContext:
+        {}
+      containers:
+        - name: httpbin
+          securityContext:
+            {}
+          image: "kennethreitz/httpbin:latest"
+          #image: "docker.io/testapp/azureapp:latest"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+#          livenessProbe:
+#            httpGet:
+#              path: /actuator/health/liveness
+#              port: http
+#          readinessProbe:
+#            httpGet:
+#              path: /actuator/health/readiness
+#              port: http
+          resources:
+            {}
+---
+# Source: kubernetes/charts/oauth2-proxy/templates/ingress.yaml
+#apiVersion: networking.k8s.io/v1
+#kind: Ingress
+#metadata:
+#  labels:
+#    app: oauth2-proxy-sample
+#    chart: oauth2-proxy-3.1.0
+#    heritage: Helm
+#    release: oauth2-proxy-example
+#  name: oauth2-proxy-example-oauth2-proxy-sample
+#  annotations:
+#    kubernetes.io/ingress.class: "nginx"
+#    nginx.ingress.kubernetes.io/proxy-body-size: "2000m"
+#    nginx.ingress.kubernetes.io/proxy-buffer-size: "32k"
+#spec:
+#  rules:
+#    - host: oauth2-proxy.localtest.me
+#      http:
+#        paths:
+#          - path: /
+#            pathType: Prefix
+#            backend:
+#              service:
+#                name: my-release-oauth2-proxy
+#                port:
+#                  number: 80
+#  tls:
+#    - hosts:
+#        - oauth2-proxy.localtest.me
+#      secretName: my-tls-secret
